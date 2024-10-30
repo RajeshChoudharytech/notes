@@ -15,18 +15,40 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from notes.views import NoteViewSet, AudioRecordingViewSet
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
 
+# Setup the schema view for Swagger
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Note Taking API",
+        default_version='v1',
+        description="API documentation for the note-taking app",
+        terms_of_service="https://www.example.com/terms/",
+        contact=openapi.Contact(email="contact@example.com"),
+        license=openapi.License(name="BSD License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
 
-
+# Setup the router for API viewsets
 router = DefaultRouter()
 router.register(r'notes', NoteViewSet)
 router.register(r'audio-recordings', AudioRecordingViewSet)
 
+# Define URL patterns
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api-auth/', include('rest_framework.urls')),
+    # path('auth/', include('authentication.urls')),
+
+    # Swagger and ReDoc documentation URLs
+    re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
