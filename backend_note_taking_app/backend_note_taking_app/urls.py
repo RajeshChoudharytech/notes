@@ -18,9 +18,14 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from notes.views import NoteViewSet, AudioRecordingViewSet
-from rest_framework import permissions
+from authentication.views import UserViewSet
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from rest_framework import permissions
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from django.conf import settings
+from django.conf.urls.static import static
 
 # Setup the schema view for Swagger
 schema_view = get_schema_view(
@@ -36,19 +41,37 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
-# Setup the router for API viewsets
+schema_view = get_schema_view(
+   openapi.Info(
+      title="Note Taking App API",
+      default_version='v1',
+      description="API documentation for the Note Taking App",
+      terms_of_service="https://www.yourcompany.com/terms/",
+      contact=openapi.Contact(email="contact@yourcompany.com"),
+      license=openapi.License(name="BSD License"),
+   ),
+   public=True,
+   permission_classes=(permissions.AllowAny,),
+)
+
+# Set up routers for your viewsets
 router = DefaultRouter()
 router.register(r'notes', NoteViewSet)
 router.register(r'audio-recordings', AudioRecordingViewSet)
+router.register(r'users', UserViewSet, basename='user')
 
 # Define URL patterns
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api-auth/', include('rest_framework.urls')),
-    # path('auth/', include('authentication.urls')),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # Swagger and ReDoc documentation URLs
-    re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
